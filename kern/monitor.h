@@ -4,7 +4,11 @@
 # error "This is a JOS kernel header; user programs should not #include it"
 #endif
 
-struct Trapframe;
+struct Trapframe {
+    struct Trapframe* prev_tf;
+    uint32_t ret_addr;
+    uint32_t arg_begin[0];
+};
 
 // Activate the kernel monitor,
 // optionally providing a trap frame indicating the current state
