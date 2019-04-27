@@ -60,26 +60,26 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 
     cprintf("Stack backtrace:\n");
-    for(tf = (struct Trapframe*) read_ebp(); tf != NULL; tf = tf->prev_tf)
+    for(struct Stackframe * sf = (struct Stackframe*) read_ebp(); sf != NULL; sf = sf->prev_sf)
     {
         cprintf(" ebp %08x eip %08x args %08x %08x %08x %08x %08x\n",
-            (uintptr_t) tf,
-            (uintptr_t) tf->ret_addr,
-            tf->arg_begin[0],
-            tf->arg_begin[1],
-            tf->arg_begin[2],
-            tf->arg_begin[3],
-            tf->arg_begin[4]);
+            (uintptr_t) sf,
+            (uintptr_t) sf->ret_addr,
+            sf->arg_begin[0],
+            sf->arg_begin[1],
+            sf->arg_begin[2],
+            sf->arg_begin[3],
+            sf->arg_begin[4]);
 
         // look up stab metadata for ret_addr(eip)
         struct Eipdebuginfo info;
-        debuginfo_eip(tf->ret_addr, &info);
+        debuginfo_eip(sf->ret_addr, &info);
 
         cprintf("  %.*s:%u: %.*s+%u\n",
                 20, info.eip_file,
                 info.eip_line,
                 info.eip_fn_namelen, info.eip_fn_name,
-                tf->ret_addr - info.eip_fn_addr);
+                sf->ret_addr - info.eip_fn_addr);
     }
 
     return 0;
