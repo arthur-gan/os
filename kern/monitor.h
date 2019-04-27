@@ -4,8 +4,10 @@
 # error "This is a JOS kernel header; user programs should not #include it"
 #endif
 
-struct Trapframe {
-    struct Trapframe* prev_tf;
+struct Trapframe;
+
+struct Stackframe {
+    struct Stackframe* prev_sf;
     uint32_t ret_addr;
     uint32_t arg_begin[0];
 };
