@@ -67,6 +67,7 @@ static void check_page_free_list(bool only_low_memory);
 static void check_page_alloc(void);
 static void check_kern_pgdir(void);
 static physaddr_t check_va2pa(pde_t *pgdir, uintptr_t va);
+static physaddr_t check_va2pa_with_perm(pde_t *pgdir, uintptr_t va, int perm);
 static void check_page(void);
 static void check_page_installed_pgdir(void);
 
@@ -160,6 +161,9 @@ mem_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
+	n = sizeof(struct Env) * NENV;
+	envs = (struct Env *) boot_alloc(n);
+	memset(envs, 0, n);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -192,6 +196,7 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
+	boot_map_region(kern_pgdir, UENVS, NENV*sizeof(struct Env), PADDR(envs), PTE_U | PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -536,6 +541,13 @@ tlb_invalidate(pde_t *pgdir, void *va)
 
 static uintptr_t user_mem_check_addr;
 
+void page_round(const void* begin, size_t len, uintptr_t* page_begin, uintptr_t* page_end) {
+    if (page_begin)
+        *page_begin = (uintptr_t) begin & ~(PGSIZE - 1);
+    if (page_end)
+        *page_end = ((uintptr_t) (begin + len) + PGSIZE - 1) & ~(PGSIZE - 1);
+}
+
 //
 // Check that an environment is allowed to access the range of memory
 // [va, va+len) with permissions 'perm | PTE_P'.
@@ -557,9 +569,18 @@ static uintptr_t user_mem_check_addr;
 int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
-	// LAB 3: Your code here.
+    uintptr_t page_begin, page_end;
+    page_round(va, len, &page_begin, &page_end);
 
-	return 0;
+    int result = 0;
+    for (; page_begin != page_end && result != -E_FAULT; page_begin += PGSIZE) {
+	    if (~0 == check_va2pa_with_perm(env->env_pgdir, page_begin, perm) ||
+	        !(page_begin < ULIM)) {
+	        user_mem_check_addr = ((uintptr_t) va > page_begin) ? (uintptr_t) va : page_begin;
+	        result = -E_FAULT;
+	    }
+	}
+	return result;
 }
 
 //
@@ -787,17 +808,22 @@ check_kern_pgdir(void)
 static physaddr_t
 check_va2pa(pde_t *pgdir, uintptr_t va)
 {
-	pte_t *p;
-
-	pgdir = &pgdir[PDX(va)];
-	if (!(*pgdir & PTE_P))
-		return ~0;
-	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
-	if (!(p[PTX(va)] & PTE_P))
-		return ~0;
-	return PTE_ADDR(p[PTX(va)]);
+	return check_va2pa_with_perm(pgdir, va, PTE_P);
 }
 
+static physaddr_t
+check_va2pa_with_perm(pde_t *pgdir, uintptr_t va, int perm)
+{
+    pte_t *p;
+
+    pgdir = &pgdir[PDX(va)];
+    if (!(*pgdir & perm))
+        return ~0;
+    p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
+    if (!(p[PTX(va)] & perm))
+        return ~0;
+    return PTE_ADDR(p[PTX(va)]);
+}
 
 // check page_insert, page_remove, &c
 static void

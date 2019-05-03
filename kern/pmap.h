@@ -68,7 +68,12 @@ void page_decref(struct PageInfo *pp);
 void tlb_invalidate(pde_t *pgdir, void *va);
 
 int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
-void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
+void user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
+
+/* Round to the nearest page boundaries that contains the range [begin, begin+len)
+ * and return the page boundaries in page_begin(inclusive) and page_end(exclusive)
+ */
+void page_round(const void* begin, size_t len, uintptr_t* page_begin, uintptr_t* page_end);
 
 static inline physaddr_t
 page2pa(struct PageInfo *pp) {

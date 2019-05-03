@@ -20,9 +20,33 @@ static struct Trapframe *last_tf;
 /* Interrupt descriptor table.  (Must be built at run time because
  * shifted function addresses can't be represented in relocation records.)
  */
-struct Gatedesc idt[256] = { { 0 } };
+struct Gatedesc idt[256] = {{0}};
 struct Pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint32_t) idt
+};
+
+#define TRAPSTUB(TRAPNAME) [T_##TRAPNAME] = TRAPNAME
+
+void (*trap_stubs[])() = {
+    TRAPSTUB(DIVIDE),
+    TRAPSTUB(DEBUG),
+    TRAPSTUB(NMI),
+    TRAPSTUB(BRKPT),
+    TRAPSTUB(OFLOW),
+    TRAPSTUB(BOUND),
+    TRAPSTUB(ILLOP),
+    TRAPSTUB(DEVICE),
+    TRAPSTUB(DBLFLT),
+    TRAPSTUB(TSS),
+    TRAPSTUB(SEGNP),
+    TRAPSTUB(STACK),
+    TRAPSTUB(GPFLT),
+    TRAPSTUB(PGFLT),
+    TRAPSTUB(FPERR),
+    TRAPSTUB(ALIGN),
+    TRAPSTUB(MCHK),
+    TRAPSTUB(SIMDERR),
+    TRAPSTUB(SYSCALL),
 };
 
 
@@ -64,7 +88,14 @@ trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
-	// LAB 3: Your code here.
+    int idt_cnt = 256, trap_stubs_cnt = sizeof(trap_stubs) / sizeof(trap_stubs[0]);
+	for (int i = 0; i < idt_cnt; i++) {
+	    if (i < trap_stubs_cnt) {
+            int istrap = (i == T_BRKPT || i == T_OFLOW || i == T_SYSCALL);
+            SETGATE(idt[i], istrap, GD_KT, trap_stubs[i], istrap ? 3 : 0 /*dpl*/)
+	    } else
+            SETGATE(idt[i], 0, GD_KT, &DEFAULT, 0)
+	}
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -144,6 +175,24 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	if (T_PGFLT == tf->tf_trapno) {
+	    page_fault_handler(tf);
+	    return;
+	}
+
+	if (T_BRKPT == tf->tf_trapno) {
+	    monitor(tf);
+	    return;
+	}
+
+	if(T_SYSCALL == tf->tf_trapno) {
+	    struct PushRegs* regs = &tf->tf_regs;
+	    // a,d,c,b,di, si
+	    uint32_t result = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx,
+	                             regs->reg_ebp, regs->reg_edi, regs->reg_esi);
+	    tf->tf_regs.reg_eax = result;
+	    return;
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -205,6 +254,9 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
+    if (tf->tf_cs & 0) {
+        panic("Page fault in kernel mode.");
+    }
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
