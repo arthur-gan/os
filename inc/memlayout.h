@@ -83,6 +83,7 @@
  */
 
 
+#define FOURGB (0x1ULL<<32)
 // All physical memory mapped at this address
 #define	KERNBASE	0xF0000000
 

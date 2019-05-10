@@ -9,6 +9,27 @@
 #include <inc/trap.h>
 #include <inc/mmu.h>
 
+extern void DIVIDE();
+extern void DEBUG();
+extern void NMI();
+extern void BRKPT();
+extern void OFLOW();
+extern void BOUND();
+extern void ILLOP();
+extern void DEVICE();
+extern void DBLFLT();
+extern void TSS();
+extern void SEGNP();
+extern void STACK();
+extern void GPFLT();
+extern void PGFLT();
+extern void FPERR();
+extern void ALIGN();
+extern void MCHK();
+extern void SIMDERR();
+extern void SYSCALL();
+extern void DEFAULT();
+
 /* The kernel's interrupt descriptor table */
 extern struct Gatedesc idt[];
 extern struct Pseudodesc idt_pd;

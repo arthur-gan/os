@@ -113,6 +113,10 @@ stab_binsearch(const struct Stab *stabs, int *region_left, int *region_right,
 int
 debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 {
+	if (!info) {
+		return -1;
+	}
+
 	const struct Stab *stabs, *stab_end;
 	const char *stabstr, *stabstr_end;
 	int lfile, rfile, lfun, rfun, lline, rline;
@@ -142,6 +146,8 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 		// Make sure this memory is valid.
 		// Return -1 if it is not.  Hint: Call user_mem_check.
 		// LAB 3: Your code here.
+        if (user_mem_check(curenv, usd, sizeof(struct UserStabData), PTE_P) < 0)
+            return -1;
 
 		stabs = usd->stabs;
 		stab_end = usd->stab_end;
@@ -150,6 +156,9 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 
 		// Make sure the STABS and string table memory is valid.
 		// LAB 3: Your code here.
+		if (user_mem_check(curenv, stabs, stab_end - stabs, PTE_P) < 0 ||
+		    user_mem_check(curenv, stabstr, stabstr_end - stabstr, PTE_P) < 0)
+		    return -1;
 	}
 
 	// String table validity checks
@@ -181,14 +190,15 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 			info->eip_fn_name = stabstr + stabs[lfun].n_strx;
 		info->eip_fn_addr = stabs[lfun].n_value;
 		addr -= info->eip_fn_addr;
+//		info->eip_fn_addr = addr;
 		// Search within the function definition for the line number.
 		lline = lfun;
 		rline = rfun;
 	} else {
 		// Couldn't find function stab!  Maybe we're in an assembly
 		// file.  Search the whole file for the line number.
-		info->eip_fn_addr = addr;
-		lline = lfile;
+        info->eip_fn_addr = stabs[lfile].n_value;
+        lline = lfile;
 		rline = rfile;
 	}
 	// Ignore stuff after the colon.
@@ -204,7 +214,12 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	//	Look at the STABS documentation and <inc/stab.h> to find
 	//	which one.
 	// Your code here.
-
+	stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
+	if (lline <= rline) {
+		info->eip_line = stabs[lline].n_desc;
+	} else {
+		info->eip_line = 0;
+	}
 
 	// Search backwards from the line number for the relevant filename
 	// stab.
