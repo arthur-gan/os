@@ -273,7 +273,11 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+	uintptr_t stk_va = KSTACKTOP - KSTKSIZE;
+	for (int i = 0; i < NCPU; i++, stk_va -= (KSTKGAP + KSTKSIZE)) {
+	    physaddr_t stk_pa = PADDR(percpu_kstacks[i]);
+	    boot_map_region(kern_pgdir, stk_va, KSTKSIZE, stk_pa, PTE_P | PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -319,6 +323,9 @@ page_init(void)
 		int isfree = 1;
 		if (0 == pagepa || (IOPHYSMEM <= pagepa && pagepa < nextfreepa))
 			isfree = 0;
+
+		if (MPENTRY_PADDR == pagepa)
+            isfree = 0;
 
 		if (isfree) {
 			pages[i].pp_ref = 0;
@@ -605,7 +612,17 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	pa = ROUNDDOWN(pa, PGSIZE);
+	size = ROUNDUP(pa + size, PGSIZE) - pa;
+
+	if (base + size >= MMIOLIM)
+	    panic("Out of MMIO virtual address space");
+
+	boot_map_region(kern_pgdir, base, size, pa, PTE_PCD | PTE_PWT | PTE_W);
+
+	void* result = (void*) base;
+	base += size;
+	return result;
 }
 
 static uintptr_t user_mem_check_addr;

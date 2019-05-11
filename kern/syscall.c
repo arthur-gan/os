@@ -280,7 +280,11 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         result = sys_env_destroy(a2);
     } else if (syscallno == SYS_getenvid) {
         result = sys_getenvid();
+    } else if (syscallno == SYS_yield) {
+        sys_yield();
+        result = 0;
     }
+
     return result;
 }
 

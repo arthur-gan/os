@@ -516,6 +516,7 @@ env_pop_tf(struct Trapframe *tf)
 		"\taddl $0x8,%%esp\n" /* skip tf_trapno and tf_errcode */
 		"\tiret\n"
 		: : "g" (tf) : "memory");
+
 	panic("iret failed");  /* mostly to placate the compiler */
 }
 
@@ -554,6 +555,7 @@ env_run(struct Env *e)
     curenv->env_runs++;
     lcr3(PADDR(curenv->env_pgdir));
 
+    unlock_kernel();
 	env_pop_tf(&curenv->env_tf);
 }
 
