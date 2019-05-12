@@ -51,46 +51,29 @@ static void
 stab_binsearch(const struct Stab *stabs, int *region_left, int *region_right,
 	       int type, uintptr_t addr)
 {
-	int l = *region_left, r = *region_right, any_matches = 0;
+    int l = *region_left, r = *region_right, any_matches = 0;
 
-	while (l <= r) {
-		int true_m = (l + r) / 2, m = true_m;
+    while (l <= r) {
+        int m = (l + r) / 2, find = m;
 
-		// search for earliest stab with right type
-		while (m >= l && stabs[m].n_type != type)
-			m--;
-		if (m < l) {	// no match in [l, m]
-			l = true_m + 1;
-			continue;
-		}
+        // search for earliest stab with right type
+        while (find >= l && stabs[find].n_type != type)
+            find--;
 
-		// actual binary search
-		any_matches = 1;
-		if (stabs[m].n_value < addr) {
-			*region_left = m;
-			l = true_m + 1;
-		} else if (stabs[m].n_value > addr) {
-			*region_right = m - 1;
-			r = m - 1;
-		} else {
-			// exact match for 'addr', but continue loop to find
-			// *region_right
-			*region_left = m;
-			l = m;
-			addr++;
-		}
-	}
+        int found = find >= l;
+        if (found)
+            any_matches = 1;
 
-	if (!any_matches)
-		*region_right = *region_left - 1;
-	else {
-		// find rightmost region containing 'addr'
-		for (l = *region_right;
-		     l > *region_left && stabs[l].n_type != type;
-		     l--)
-			/* do nothing */;
-		*region_left = l;
-	}
+        if (!found || stabs[find].n_value <= addr) {
+            l = m + 1;
+            if (found)
+                *region_left = find;
+        } else
+            *region_right = (r = find - 1);
+    }
+
+    if (!any_matches)
+        *region_right = *region_left - 1;
 }
 
 
