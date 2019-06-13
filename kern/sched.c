@@ -32,6 +32,9 @@ sched_yield(void)
 	        env_run(envs + idx);
 	}
 
+	if (curenv->env_status == ENV_RUNNING)
+	    env_run(curenv);
+
 	// sched_halt never returns
 	sched_halt();
 }

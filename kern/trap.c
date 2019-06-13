@@ -221,7 +221,7 @@ trap_dispatch(struct Trapframe *tf)
 	    struct PushRegs* regs = &tf->tf_regs;
 	    // a,d,c,b,di, si
 	    uint32_t result = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx,
-	                             regs->reg_ebp, regs->reg_edi, regs->reg_esi);
+	                             regs->reg_ebx, regs->reg_edi, regs->reg_esi);
 	    tf->tf_regs.reg_eax = result;
 	    return;
 	}
