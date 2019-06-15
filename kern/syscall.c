@@ -136,11 +136,19 @@ sys_env_set_status(envid_t envid, int status)
 // Returns 0 on success, < 0 on error.  Errors are:
 //	-E_BAD_ENV if environment envid doesn't currently exist,
 //		or the caller doesn't have permission to change envid.
-static int
+int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
-	panic("sys_env_set_pgfault_upcall not implemented");
+	// panic("sys_env_set_pgfault_upcall not implemented");
+    struct Env * env;
+
+    int result = envid2env(envid, &env, 1 /*check*/);
+
+    if (NO_ERROR == result)
+        env->env_pgfault_upcall = func;
+
+    return result;
 }
 
 // Allocate a page of memory and map it at 'va' with permission
@@ -159,7 +167,7 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 //	-E_INVAL if perm is inappropriate (see above).
 //	-E_NO_MEM if there's no memory to allocate the new page,
 //		or to allocate any necessary page tables.
-static int
+int
 sys_page_alloc(envid_t envid, void *va, int perm)
 {
 	// Hint: This function is a wrapper around page_alloc() and
@@ -264,7 +272,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 //	-E_BAD_ENV if environment envid doesn't currently exist,
 //		or the caller doesn't have permission to change envid.
 //	-E_INVAL if va >= UTOP, or va is not page-aligned.
-static int
+int
 sys_page_unmap(envid_t envid, void *va)
 {
 	// Hint: This function is a wrapper around page_remove().
@@ -378,6 +386,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         result = sys_exofork();
     } else if (syscallno == SYS_env_set_status) {
         result = sys_env_set_status(a1, a2);
+    } else if (syscallno == SYS_env_set_pgfault_upcall) {
+        result = sys_env_set_pgfault_upcall(a1, (void* )a2);
     }
 
     return result;

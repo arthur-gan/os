@@ -1,6 +1,7 @@
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
+#include <inc/string.h>
 
 #include <kern/pmap.h>
 #include <kern/trap.h>
@@ -29,6 +30,15 @@ struct Gatedesc idt[256] = {{0}};
 struct Pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint32_t) idt
 };
+
+#define UX_STACK_PUSH(ux_stack_addr, data) \
+    ux_stack_addr -= sizeof(data); \
+    user_mem_assert( \
+            curenv, \
+            (void *) ux_stack_addr, \
+            sizeof(data), \
+            PTE_U | PTE_W | PTE_P); \
+    * (typeof(data) *) ux_stack_addr = data;
 
 #define TRAPSTUB(TRAPNAME) [T_##TRAPNAME] = TRAPNAME
 
@@ -310,7 +320,6 @@ trap(struct Trapframe *tf)
 		sched_yield();
 }
 
-
 void
 page_fault_handler(struct Trapframe *tf)
 {
@@ -359,10 +368,43 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+    if (curenv->env_pgfault_upcall) {
+        if (ROUNDDOWN(tf->tf_esp, PGSIZE) !=
+            ROUNDDOWN(tf->tf_esp - sizeof(tf->tf_eip), PGSIZE))
+            panic("User stack has insufficient space to handle pgflt");
+
+        struct Env* env;
+        envid2env(0, &env, 0 /*check*/);
+
+        uintptr_t ex_stk = UXSTACKTOP;
+        if (ROUNDDOWN(tf->tf_esp, PGSIZE) == UXSTACKTOP - PGSIZE)
+            ex_stk = tf->tf_esp - sizeof(tf->tf_eip);
+
+        // Push ESP
+        UX_STACK_PUSH(ex_stk, tf->tf_esp);
+        // Push EFLAGS
+        UX_STACK_PUSH(ex_stk, tf->tf_eflags);
+        // Push EIP
+        UX_STACK_PUSH(ex_stk, tf->tf_eip);
+        // Push PushRegs
+        UX_STACK_PUSH(ex_stk, tf->tf_regs);
+        // Push ErrorCode
+        UX_STACK_PUSH(ex_stk, tf->tf_err);
+        // Push fault_va
+        UX_STACK_PUSH(ex_stk, fault_va);
+
+        // Zero out old env_tf.
+        memset(&curenv->env_tf.tf_regs, 0, sizeof(struct PushRegs));
+        curenv->env_tf.tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
+        curenv->env_tf.tf_esp = ex_stk;
+
+        env_run(curenv);
+    }
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
+
 	print_trapframe(tf);
 	env_destroy(curenv);
 }
