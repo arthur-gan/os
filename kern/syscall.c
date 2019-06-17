@@ -89,9 +89,11 @@ sys_exofork(void)
 	int result = env_alloc(&env, curenv->env_id);
 
 	if (NO_ERROR == result) {
+	    env->env_status = ENV_NOT_RUNNABLE;
 	    result = env->env_id;
 	    env->env_tf = curenv->env_tf;
 	    env->env_tf.tf_regs.reg_eax = 0;
+        env->env_pgfault_upcall = curenv->env_pgfault_upcall;
 	}
 
     return result;
@@ -239,8 +241,8 @@ sys_page_map(envid_t srcenvid, void *srcva,
 
     int result = NO_ERROR;
 
-    if ((uintptr_t) srcva % PGSIZE == 0 && (uintptr_t ) srcva < UTOP &&
-        (uintptr_t) dstva % PGSIZE == 0 && (uintptr_t ) dstva < UTOP) {
+    if ((uintptr_t) srcva % PGSIZE == 0 && (uintptr_t) srcva < UTOP &&
+        (uintptr_t) dstva % PGSIZE == 0 && (uintptr_t) dstva < UTOP) {
         struct Env *srcenv, *dstenv;
 
         if (NO_ERROR == envid2env(srcenvid, &srcenv, 1 /*check*/) &&
