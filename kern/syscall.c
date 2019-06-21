@@ -372,7 +372,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
     } else if (syscallno == SYS_cgetc) {
         result = sys_cgetc();
     } else if (syscallno == SYS_env_destroy) {
-        result = sys_env_destroy(a2);
+        result = sys_env_destroy(a1);
     } else if (syscallno == SYS_getenvid) {
         result = sys_getenvid();
     } else if (syscallno == SYS_yield) {
