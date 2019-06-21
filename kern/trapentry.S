@@ -42,8 +42,18 @@
 	pushl $(num);							\
 	jmp _alltraps
 
+#define TRAPHANDLER_IF(name, num)					\
+	.globl name;							\
+	.type name, @function;						\
+	.align 2;							\
+	name:								\
+	pushl $0;							\
+	pushl $(num);							\
+	jmp _alltraps
+
 #define _TRAPHANDLER(name) TRAPHANDLER(name, T_##name)
 #define _TRAPHANDLER_NOEC(name) TRAPHANDLER_NOEC(name, T_##name)
+#define _IRQHANDLER(irq_num) TRAPHANDLER_IF(IRQ_##irq_num##_STUB, IRQ_OFFSET + irq_num)
 
 .text
 
@@ -71,6 +81,22 @@ _TRAPHANDLER_NOEC(MCHK)
 _TRAPHANDLER_NOEC(SIMDERR)
 _TRAPHANDLER_NOEC(SYSCALL)
 _TRAPHANDLER_NOEC(DEFAULT)
+_IRQHANDLER(0)
+_IRQHANDLER(1)
+_IRQHANDLER(2)
+_IRQHANDLER(3)
+_IRQHANDLER(4)
+_IRQHANDLER(5)
+_IRQHANDLER(6)
+_IRQHANDLER(7)
+_IRQHANDLER(8)
+_IRQHANDLER(9)
+_IRQHANDLER(10)
+_IRQHANDLER(11)
+_IRQHANDLER(12)
+_IRQHANDLER(13)
+_IRQHANDLER(14)
+_IRQHANDLER(15)
 
 /*
  * Lab 3: Your code here for _alltraps

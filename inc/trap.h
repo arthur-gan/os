@@ -30,6 +30,7 @@
 #define T_DEFAULT   500		// catchall
 
 #define IRQ_OFFSET	32	// IRQ 0 corresponds to int IRQ_OFFSET
+#define IRQ(irq_num) (IRQ_OFFSET + irq_num)
 
 // Hardware IRQ numbers. We receive these as (IRQ_OFFSET+IRQ_WHATEVER)
 #define IRQ_TIMER        0

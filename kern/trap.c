@@ -40,28 +40,45 @@ struct Pseudodesc idt_pd = {
             PTE_U | PTE_W | PTE_P); \
     * (typeof(data) *) ux_stack_addr = data;
 
-#define TRAPSTUB(TRAPNAME) [T_##TRAPNAME] = TRAPNAME
+#define INIT_TRAPSTUB(TRAPNAME) [T_##TRAPNAME] = TRAPNAME
+#define INIT_IRQSTUB(irq_num) [IRQ_OFFSET + irq_num] = IRQ_##irq_num##_STUB
 
 void (*trap_stubs[])() = {
-    TRAPSTUB(DIVIDE),
-    TRAPSTUB(DEBUG),
-    TRAPSTUB(NMI),
-    TRAPSTUB(BRKPT),
-    TRAPSTUB(OFLOW),
-    TRAPSTUB(BOUND),
-    TRAPSTUB(ILLOP),
-    TRAPSTUB(DEVICE),
-    TRAPSTUB(DBLFLT),
-    TRAPSTUB(TSS),
-    TRAPSTUB(SEGNP),
-    TRAPSTUB(STACK),
-    TRAPSTUB(GPFLT),
-    TRAPSTUB(PGFLT),
-    TRAPSTUB(FPERR),
-    TRAPSTUB(ALIGN),
-    TRAPSTUB(MCHK),
-    TRAPSTUB(SIMDERR),
-    TRAPSTUB(SYSCALL),
+    INIT_TRAPSTUB(DIVIDE),
+    INIT_TRAPSTUB(DEBUG),
+    INIT_TRAPSTUB(NMI),
+    INIT_TRAPSTUB(BRKPT),
+    INIT_TRAPSTUB(OFLOW),
+    INIT_TRAPSTUB(BOUND),
+    INIT_TRAPSTUB(ILLOP),
+    INIT_TRAPSTUB(DEVICE),
+    INIT_TRAPSTUB(DBLFLT),
+    INIT_TRAPSTUB(TSS),
+    INIT_TRAPSTUB(SEGNP),
+    INIT_TRAPSTUB(STACK),
+    INIT_TRAPSTUB(GPFLT),
+    INIT_TRAPSTUB(PGFLT),
+    INIT_TRAPSTUB(FPERR),
+    INIT_TRAPSTUB(ALIGN),
+    INIT_TRAPSTUB(MCHK),
+    INIT_TRAPSTUB(SIMDERR),
+    INIT_TRAPSTUB(SYSCALL),
+    INIT_IRQSTUB(0),
+    INIT_IRQSTUB(1),
+    INIT_IRQSTUB(2),
+    INIT_IRQSTUB(3),
+    INIT_IRQSTUB(4),
+    INIT_IRQSTUB(5),
+    INIT_IRQSTUB(6),
+    INIT_IRQSTUB(7),
+    INIT_IRQSTUB(8),
+    INIT_IRQSTUB(9),
+    INIT_IRQSTUB(10),
+    INIT_IRQSTUB(11),
+    INIT_IRQSTUB(12),
+    INIT_IRQSTUB(13),
+    INIT_IRQSTUB(14),
+    INIT_IRQSTUB(15),
 };
 
 
@@ -108,8 +125,10 @@ trap_init(void)
     int idt_cnt = 256, trap_stubs_cnt = sizeof(trap_stubs) / sizeof(trap_stubs[0]);
 	for (int i = 0; i < idt_cnt; i++) {
 	    if (i < trap_stubs_cnt) {
-            int istrap = (i == T_BRKPT || i == T_OFLOW || i == T_SYSCALL);
-            SETGATE(idt[i], istrap, GD_KT, trap_stubs[i], istrap ? 3 : 0 /*dpl*/)
+	        // Only the three below
+	        // are invokable via INT instruction
+            int invokable = (i == T_BRKPT || i == T_OFLOW || i == T_SYSCALL);
+            SETGATE(idt[i], 0, GD_KT, trap_stubs[i], invokable ? 3 : 0 /*dpl*/)
 	    } else
             SETGATE(idt[i], 0, GD_KT, &DEFAULT, 0)
 	}
@@ -248,6 +267,11 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+
+	if (IRQ_OFFSET == tf->tf_trapno) {
+	    lapic_eoi();
+	    sched_yield();
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
