@@ -102,6 +102,8 @@
 #define MMIOLIM		(KSTACKTOP - PTSIZE)
 #define MMIOBASE	(MMIOLIM - PTSIZE)
 
+#define IPC_NO_PAGE (void *) MMIOBASE
+
 #define ULIM		(MMIOBASE)
 
 /*

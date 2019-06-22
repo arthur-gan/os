@@ -509,6 +509,8 @@ env_pop_tf(struct Trapframe *tf)
 	// Record the CPU we are running on for user-space debugging
 	curenv->env_cpunum = cpunum();
 
+//    if (tf->tf_regs.reg_eax == 14)
+//        panic("I don't even know anymore %d at %x", curenv->env_id, &curenv->env_tf.tf_regs.reg_eax);
 	asm volatile(
 		"\tmovl %0,%%esp\n"
 		"\tpopal\n"
@@ -548,7 +550,7 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-	if (curenv)
+	if (curenv && curenv->env_status == ENV_RUNNING)
         curenv->env_status = ENV_RUNNABLE;
 
 	curenv = e;
