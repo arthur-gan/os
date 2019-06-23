@@ -54,6 +54,8 @@
 #define PTXSHIFT	12		// offset of PTX in a linear address
 #define PDXSHIFT	22		// offset of PDX in a linear address
 
+#define PTE_PERM ((1 << PTXSHIFT) - 1)
+
 // Page table/directory entry flags.
 #define PTE_P		0x001	// Present
 #define PTE_W		0x002	// Writeable
@@ -71,6 +73,7 @@
 
 // Flags in PTE_SYSCALL may be used in system calls.  (Others may not.)
 #define PTE_SYSCALL	(PTE_AVAIL | PTE_P | PTE_W | PTE_U)
+#define PTE_REQUIRED (PTE_U + PTE_P)
 
 // Address in page table or page directory entry
 #define PTE_ADDR(pte)	((physaddr_t) (pte) & ~0xFFF)

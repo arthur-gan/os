@@ -42,15 +42,74 @@
 	pushl $(num);							\
 	jmp _alltraps
 
+#define TRAPHANDLER_IF(name, num)					\
+	.globl name;							\
+	.type name, @function;						\
+	.align 2;							\
+	name:								\
+	pushl $0;							\
+	pushl $(num);							\
+	jmp _alltraps
+
+#define _TRAPHANDLER(name) TRAPHANDLER(name, T_##name)
+#define _TRAPHANDLER_NOEC(name) TRAPHANDLER_NOEC(name, T_##name)
+#define _IRQHANDLER(irq_num) TRAPHANDLER_IF(IRQ_##irq_num##_STUB, IRQ_OFFSET + irq_num)
+
 .text
 
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 
-
+_TRAPHANDLER_NOEC(DIVIDE)
+_TRAPHANDLER_NOEC(DEBUG)
+_TRAPHANDLER_NOEC(NMI)
+_TRAPHANDLER_NOEC(BRKPT)
+_TRAPHANDLER_NOEC(OFLOW)
+_TRAPHANDLER_NOEC(BOUND)
+_TRAPHANDLER_NOEC(ILLOP)
+_TRAPHANDLER_NOEC(DEVICE)
+_TRAPHANDLER(DBLFLT)
+_TRAPHANDLER(TSS)
+_TRAPHANDLER(SEGNP)
+_TRAPHANDLER(STACK)
+_TRAPHANDLER(GPFLT)
+_TRAPHANDLER(PGFLT)
+_TRAPHANDLER_NOEC(FPERR)
+_TRAPHANDLER_NOEC(ALIGN)
+_TRAPHANDLER_NOEC(MCHK)
+_TRAPHANDLER_NOEC(SIMDERR)
+_TRAPHANDLER_NOEC(SYSCALL)
+_TRAPHANDLER_NOEC(DEFAULT)
+_IRQHANDLER(0)
+_IRQHANDLER(1)
+_IRQHANDLER(2)
+_IRQHANDLER(3)
+_IRQHANDLER(4)
+_IRQHANDLER(5)
+_IRQHANDLER(6)
+_IRQHANDLER(7)
+_IRQHANDLER(8)
+_IRQHANDLER(9)
+_IRQHANDLER(10)
+_IRQHANDLER(11)
+_IRQHANDLER(12)
+_IRQHANDLER(13)
+_IRQHANDLER(14)
+_IRQHANDLER(15)
 
 /*
  * Lab 3: Your code here for _alltraps
  */
+    .globl _alltraps;
+    .type _alltraps, @function;
+    .align 2;
+_alltraps:
+    pushl %ds;  # pushl to pad %ds to 32bit
+    pushl %es;  # pushl to pad %es to 32bit
+    pushal;     # lay a copy of PushRegs on stack
+    push %esp;  # %esp is Trapframe* tf argument to trap()
+    call trap   # should *not* return
 
+_alltrapsspin:
+    jmp _alltrapsspin

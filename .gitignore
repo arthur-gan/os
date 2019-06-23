@@ -16,3 +16,8 @@
 /sol?/
 /myapi.key
 /.suf
+/.idea/
+/CMakeLists.txt
+/cmake-build-debug/
+/.cproject
+/.project

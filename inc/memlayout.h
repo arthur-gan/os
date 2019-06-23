@@ -83,6 +83,7 @@
  */
 
 
+#define FOURGB (0x1ULL<<32)
 // All physical memory mapped at this address
 #define	KERNBASE	0xF0000000
 
@@ -100,6 +101,8 @@
 // Memory-mapped IO.
 #define MMIOLIM		(KSTACKTOP - PTSIZE)
 #define MMIOBASE	(MMIOLIM - PTSIZE)
+
+#define IPC_NO_PAGE (void *) MMIOBASE
 
 #define ULIM		(MMIOBASE)
 
